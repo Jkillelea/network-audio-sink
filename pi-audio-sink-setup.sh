@@ -44,6 +44,9 @@ load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1;${SUBNET} auth-anon
 
 # Advertise this sink over mDNS so LAN clients auto-discover it
 load-module module-zeroconf-publish
+
+# Switch default sink to any newly connected device (e.g. USB DAC hot-plug)
+load-module module-switch-on-connect
 EOF
 
 echo "==> Restarting PulseAudio user service..."
