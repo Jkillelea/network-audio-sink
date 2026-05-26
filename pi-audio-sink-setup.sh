@@ -22,6 +22,20 @@ fi
 
 PULSE_CONFIG="$HOME/.config/pulse/default.pa"
 
+# Detect I2S HAT DACs (BossDAC and similar) that share the soc_sound ALSA card.
+# The built-in BCM2835 audio would otherwise win as the default sink.
+I2S_SINK_NAME="alsa_output.platform-soc_sound.stereo-fallback"
+if aplay -l 2>/dev/null | grep -qi "bossdac\|boss dac\|hifiberry\|iqaudio\|audioinjector"; then
+    I2S_CARD_DESC=$(aplay -l 2>/dev/null | grep -i "card.*soc\|bossdac\|boss dac" | head -1 | sed 's/.*card [0-9]*: \([^,]*\).*/\1/' | tr -d '[:space:]')
+    [[ -z "$I2S_CARD_DESC" ]] && I2S_CARD_DESC="HAT DAC"
+    I2S_SINK_EXTRA="
+# I2S HAT DAC detected — set as default and give it a unique mDNS name
+set-default-sink ${I2S_SINK_NAME}
+update-sink-proplist ${I2S_SINK_NAME} device.description=\"${I2S_CARD_DESC} Stereo\""
+else
+    I2S_SINK_EXTRA=""
+fi
+
 echo "==> Installing packages..."
 sudo apt-get update -qq
 sudo apt-get install -y pulseaudio pulseaudio-module-zeroconf avahi-daemon avahi-utils
@@ -47,6 +61,7 @@ load-module module-zeroconf-publish
 
 # Switch default sink to any newly connected device (e.g. USB DAC hot-plug)
 load-module module-switch-on-connect
+${I2S_SINK_EXTRA}
 EOF
 
 echo "==> Restarting PulseAudio user service..."
